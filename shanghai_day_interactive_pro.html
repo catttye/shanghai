@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>上海一天行程 · 交互式打卡清单</title>
+<style>
+  :root{
+    --bg:#0b0c10;
+    --panel:#111827;
+    --ink:#e7eaf3;
+    --muted:#a5b3c7;
+    --line:rgba(255,255,255,.1);
+    --accent:#61dafb;
+    --accent2:#8ef6c1;
+    --danger:#ff6b6b;
+    --warn:#ffd166;
+    --ok:#3ad29f;
+    --radius:16px;
+    --shadow:0 12px 32px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, -apple-system, "PingFang SC", "Microsoft YaHei", Inter, Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "Segoe UI", system-ui;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 10% -10%, #152235, transparent),
+      radial-gradient(1000px 600px at 90% 0%, #101621, transparent),
+      linear-gradient(180deg, #0b0f19, #0b0c10);
+    line-height:1.6;
+    letter-spacing:.2px;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    backdrop-filter:saturate(160%) blur(12px);
+    background:rgba(12,16,26,.6);
+    border-bottom:1px solid var(--line);
+  }
+  .wrap{max-width:1100px; margin:0 auto; padding:16px 18px;}
+  .title{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+  h1{margin:0; font-size:1.55rem; letter-spacing:.5px}
+  .chip{border:1px solid var(--line); color:var(--muted); padding:6px 10px; border-radius:999px; font-size:.9rem}
+  .controls{margin-left:auto; display:flex; gap:10px; flex-wrap:wrap}
+  button, .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 14px; border-radius:12px; border:1px solid var(--line);
+    background:#111827; color:var(--ink); cursor:pointer; box-shadow:var(--shadow);
+    transition:transform .15s ease, border-color .2s ease, background .2s ease;
+    font-weight:600;
+  }
+  button:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.28)}
+  main .grid{display:grid; grid-template-columns: 360px 1fr; gap:18px; margin-top:14px}
+  @media (max-width: 980px){ main .grid{grid-template-columns:1fr} }
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .card .inner{padding:18px}
+  h2{margin:0 0 12px 0; font-size:1.2rem}
+  .muted{color:var(--muted)}
+  .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .kpi .box{background:#0e1524; border:1px solid var(--line); border-radius:14px; padding:10px 12px}
+  .kpi strong{display:block; font-size:1.15rem}
+  .bar{
+    width:100%; height:12px; border-radius:999px; background:#0e1624; border:1px solid var(--line); overflow:hidden;
+  }
+  .bar>span{display:block; height:100%; background:linear-gradient(90deg, var(--accent), #7cf5cf); width:0%}
+  .progress-row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 0 0}
+  .legend{font-variant-numeric:tabular-nums}
+  .list{display:flex; flex-direction:column; gap:10px}
+  .task{
+    display:flex; gap:12px; padding:12px; border-radius:14px; border:1px solid var(--line); background:#0e1524;
+    align-items:flex-start; transition:background .2s, border-color .2s;
+  }
+  .task.done{opacity:.7; background:#0d1220}
+  .task .left{display:flex; align-items:flex-start; gap:10px; min-width:28px}
+  .task input[type="checkbox"]{width:22px; height:22px; margin-top:2px; cursor:pointer}
+  .task h3{margin:0; font-size:1.05rem}
+  .task .meta{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0}
+  .badge{padding:4px 8px; border-radius:999px; border:1px solid var(--line); font-size:.8rem; color:var(--muted)}
+  .status{padding:4px 8px; border-radius:999px; font-size:.8rem; font-weight:700}
+  .status.open{background:rgba(58,210,159,.12); color:#3ad29f; border:1px solid rgba(58,210,159,.35)}
+  .status.soon{background:rgba(255,209,102,.12); color:#ffd166; border:1px solid rgba(255,209,102,.35)}
+  .status.closed{background:rgba(255,107,107,.12); color:#ff6b6b; border:1px solid rgba(255,107,107,.35)}
+  .actions{margin-left:auto; display:flex; gap:8px; flex-wrap:wrap}
+  .pill-btn{
+    padding:8px 10px; border-radius:999px; border:1px solid var(--line); background:#0f1729; color:#cfe7ff; text-decoration:none; font-size:.9rem;
+  }
+  .pill-btn:hover{border-color:rgba(255,255,255,.3)}
+  .hr{height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent); margin:12px 0}
+  .group-title{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .sub{color:#cdd6eb; font-size:.95rem}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap}
+  .provider{display:flex; gap:8px; align-items:center; color:var(--muted); font-size:.9rem}
+  select{background:#0e1626; color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 10px}
+  @media (max-width:560px){ .actions{width:100%} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap title">
+    <h1>上海一天行程 · 交互式打卡</h1>
+    <span class="chip">支持地图导航 / 电话 / 预约</span>
+    <div class="controls">
+      <div class="provider">
+        导航应用
+        <select id="mapProvider">
+          <option value="amap">高德</option>
+          <option value="baidu">百度</option>
+          <option value="apple">Apple</option>
+          <option value="google">Google</option>
+        </select>
+      </div>
+      <button id="markAll">打卡完成</button>
+      <button id="clearAll">全部清除</button>
+      <button id="export">导出 / 打印</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <!-- 左侧 概要与进度 -->
+    <aside class="card">
+      <div class="inner">
+        <div class="group-title">
+          <h2>📊 行程进度</h2>
+          <div class="legend" id="countText">0 / 0 · 0%</div>
+        </div>
+        <div class="bar" aria-label="完成进度"><span id="barFill" style="width:0%"></span></div>
+        <p class="sub">勾选任一项目自动保存到本地（localStorage），换设备不共享。</p>
+
+        <div class="hr"></div>
+        <h2>📝 使用提示</h2>
+        <ul class="muted">
+          <li>点击「导航」会先弹出确认，再在所选地图 App/网页中打开目的地。</li>
+          <li>营业状态颜色：<span class="status open">营业中</span> <span class="status soon">即将营业</span> <span class="status closed">已打烊</span>（按当天时间自动判断）。</li>
+          <li>电话按钮会弹出确认，手机端可直接拨打。</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- 右侧 列表 -->
+    <section class="card">
+      <div class="inner">
+        <h2>🍴 美食打卡</h2>
+        <div class="list" id="foodList">
+          
+          <!-- 东泰祥 -->
+          <article class="task" data-id="dongtaixiang" data-name="东泰祥" data-addr="东泰祥 上海" data-phone="021-12345678" data-open="07:00" data-close="21:00">
+            <div class="left">
+              <input type="checkbox" class="check">
+            </div>
+            <div class="content">
+              <h3>东泰祥 · 生煎包 / 葱油拌面 / 虾肉小馄饨</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+                <span class="badge">电话 <span data-phone>021-12345678</span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+                <a href="#" class="pill-btn tel">拨打电话</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 提篮桥葱油饼 -->
+          <article class="task" data-id="congyoubing" data-name="提篮桥老摊头葱油饼" data-addr="提篮桥老摊头葱油饼 上海" data-open="06:30" data-close="19:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>提篮桥老摊头葱油饼</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+                <span class="badge">电话 <span data-phone>无</span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 虹口糕团 -->
+          <article class="task" data-id="hongkougaotuan" data-name="上海虹口糕团" data-addr="虹口糕团 上海" data-open="08:00" data-close="20:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>上海虹口糕团 · 全家福</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 莉莲 -->
+          <article class="task" data-id="lilian" data-name="莉莲蛋挞" data-addr="莉莲蛋挞 上海" data-open="10:00" data-close="22:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>莉莲 · 芝士蛋挞</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 栗其 -->
+          <article class="task" data-id="liqi" data-name="栗其奶茶" data-addr="栗其 奶茶 上海" data-open="10:00" data-close="21:30">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>栗其 · 蜂巢焦糖鲜牛乳茶（金骏眉茶底）</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 陆丝芬 -->
+          <article class="task" data-id="lusifen" data-name="陆丝芬豆花" data-addr="陆丝芬 豆花 上海" data-open="11:00" data-close="21:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>陆丝芬 · 冰渣豆花</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 甜得福 -->
+          <article class="task" data-id="tiandefu" data-name="甜得福" data-addr="甜得福 上海" data-open="11:00" data-close="22:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>甜得福 · 四果汤</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <div class="hr"></div>
+        <h2>💆 护理 / 🛍️ 购物</h2>
+
+        <div class="list" id="serviceList">
+          <!-- 皮肤管理 -->
+          <article class="task" data-id="skin" data-name="皮肤管理" data-addr="皮肤管理 上海" data-open="10:00" data-close="21:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>皮肤管理</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+                <span class="badge"><a class="pill-btn" href="https://example.com/skin" target="_blank">预约</a></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- 美甲 -->
+          <article class="task" data-id="nails" data-name="美甲" data-addr="美甲 上海" data-open="10:00" data-close="21:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>美甲</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+                <span class="badge"><a class="pill-btn" href="https://example.com/nails" target="_blank">预约</a></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+              </div>
+            </div>
+          </article>
+
+          <!-- Apple Watch -->
+          <article class="task" data-id="applewatch" data-name="Apple Store iapm" data-addr="Apple iapm 上海" data-phone="400-6171-888" data-open="10:00" data-close="22:00">
+            <div class="left"><input type="checkbox" class="check"></div>
+            <div class="content">
+              <h3>购买 Apple Watch（Apple iapm）</h3>
+              <div class="meta">
+                <span class="badge">营业时间 <span class="status" data-status></span></span>
+                <span class="badge">电话 <span data-phone>400-6171-888</span></span>
+                <span class="badge"><a class="pill-btn" href="https://www.apple.com.cn/retail/iapm/" target="_blank">预约</a></span>
+              </div>
+              <div class="actions">
+                <a href="#" class="pill-btn nav">导航</a>
+                <a href="#" class="pill-btn tel">拨打电话</a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+/* ====== 工具函数 ====== */
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+
+function timeToMinutes(t){ // "HH:MM" -> minutes
+  const [H,M] = t.split(':').map(Number);
+  return H*60 + M;
+}
+function getNowMinutes(){
+  const now = new Date();
+  return now.getHours()*60 + now.getMinutes();
+}
+function computeStatus(openStr, closeStr){
+  const now = getNowMinutes();
+  const open = timeToMinutes(openStr);
+  const close = timeToMinutes(closeStr);
+  const SOON_WIN = 60; // 60分钟内将营业
+  if(now >= open && now < close) return {cls:'open', text:'营业中'};
+  if(now < open && (open - now) <= SOON_WIN) return {cls:'soon', text:'即将营业'};
+  return {cls:'closed', text:'已打烊'};
+}
+function buildMapUrl(provider, name){
+  const q = encodeURIComponent(name);
+  switch(provider){
+    case 'amap':  return `https://www.amap.com/search?query=${q}`;
+    case 'baidu': return `https://api.map.baidu.com/geocoder?address=${q}&output=html`;
+    case 'apple': return `https://maps.apple.com/?q=${q}`;
+    default:      return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  }
+}
+
+/* ====== 初始化状态徽章 ====== */
+function refreshStatuses(){
+  $$('.task').forEach(task=>{
+    const open = task.dataset.open || '00:00';
+    const close = task.dataset.close || '23:59';
+    const badge = $('[data-status]', task);
+    if(!badge) return;
+    const st = computeStatus(open, close);
+    badge.textContent = `${st.text}（${open}–${close}）`;
+    badge.className = `status ${st.cls}`;
+  });
+}
+
+/* ====== 进度条 & 计数 ====== */
+function updateProgress(){
+  const boxes = $$('.check');
+  const checked = boxes.filter(b=>b.checked).length;
+  const total = boxes.length;
+  const pct = total ? Math.round(checked/total*100) : 0;
+  $('#barFill').style.width = pct + '%';
+  $('#countText').textContent = `${checked} / ${total} · ${pct}%`;
+}
+
+/* ====== 打卡本地存储 ====== */
+function restoreChecks(){
+  $$('.task').forEach(task=>{
+    const id = task.dataset.id;
+    const box = $('.check', task);
+    const saved = localStorage.getItem('sh-trip-' + id);
+    if(saved === '1'){ box.checked = true; task.classList.add('done'); }
+  });
+}
+function wireCheckHandlers(){
+  $$('.check').forEach(box=>{
+    box.addEventListener('change', e=>{
+      const task = e.target.closest('.task');
+      const id = task.dataset.id;
+      localStorage.setItem('sh-trip-' + id, box.checked ? '1' : '0');
+      task.classList.toggle('done', box.checked);
+      updateProgress();
+    });
+  });
+}
+
+/* ====== 动作按钮：导航/电话 ====== */
+function wireActionButtons(){
+  const providerSel = $('#mapProvider');
+  $$('.nav').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.preventDefault();
+      const task = e.target.closest('.task');
+      const name = task.dataset.addr || task.dataset.name;
+      const provider = providerSel.value;
+      if(confirm(`导航到「${task.dataset.name}」？\n（将使用 ${providerSel.options[providerSel.selectedIndex].text} 打开）`)){
+        const url = buildMapUrl(provider, name);
+        window.open(url, '_blank');
+      }
+    });
+  });
+  $$('.tel').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.preventDefault();
+      const task = e.target.closest('.task');
+      const phone = $('[data-phone]', task)?.textContent?.trim();
+      if(phone && phone !== '无'){
+        if(confirm(`拨打电话：${phone} ？`)){
+          window.location.href = 'tel:' + phone.replace(/[^+\d]/g,'');
+        }
+      }else{
+        alert('该地点暂无电话号码');
+      }
+    });
+  });
+}
+
+/* ====== 顶部工具栏 ====== */
+$('#markAll').addEventListener('click', ()=>{
+  $$('.task').forEach(task=>{
+    const box = $('.check', task);
+    box.checked = true;
+    task.classList.add('done');
+    localStorage.setItem('sh-trip-' + task.dataset.id, '1');
+  });
+  updateProgress();
+});
+$('#clearAll').addEventListener('click', ()=>{
+  if(!confirm('确定清除所有打卡进度吗？')) return;
+  $$('.task').forEach(task=>{
+    const box = $('.check', task);
+    box.checked = false;
+    task.classList.remove('done');
+    localStorage.setItem('sh-trip-' + task.dataset.id, '0');
+  });
+  updateProgress();
+});
+$('#export').addEventListener('click', ()=>{ window.print(); });
+
+/* ====== 首次渲染 ====== */
+restoreChecks();
+wireCheckHandlers();
+wireActionButtons();
+refreshStatuses();
+updateProgress();
+
+/* ====== 每分钟刷新营业状态 ====== */
+setInterval(refreshStatuses, 60*1000);
+</script>
+</body>
+</html>
